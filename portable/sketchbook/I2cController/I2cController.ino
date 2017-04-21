@@ -13,6 +13,8 @@ LiquidTWI2 contr(0);
 int encoderPos=0;
 uint8_t clickButton;
 
+uint8_t Pot;
+char ActEnc, OldEnc;
 
 
 // Interrupts from the MCP will be handled by this PIN on Arduino
@@ -21,13 +23,13 @@ byte arduinoIntPin = 3;
 byte arduinoInterrupt = 1;
 
 volatile boolean awakenByInterrupt = false;
-
+unsigned long lastMillisInterrupt = 0;
 
 void handleInterrupt() {
-/*
-	Serial.print("INTCAPA: ");
-	Serial.println(contr.readRegister(MCP23017_INTCAPA),BIN);
-	Serial.println("Int");
+	/*
+	   Serial.print("INTCAPA: ");
+	   Serial.println(contr.readRegister(MCP23017_INTCAPA),BIN);
+	   Serial.println("Int");
 	//reset the flag
 
 	//rotating=false;   
@@ -47,21 +49,70 @@ void handleInterrupt() {
 	// while interrupts are still occurring clear the register (switch bouncing) 
 	while(digitalRead(arduinoIntPin) > 0)
 	{
-		contr.readRegister(MCP23017_INTCAPA);
-		delay (10);
+	contr.readRegister(MCP23017_INTCAPA);
+	delay (10);
 	}
 	cleanInterrupts();
-*/
-  // disable interrupts while handling them.
-  detachInterrupt(arduinoInterrupt);
+	 */
+	// disable interrupts while handling them.
 
-  contr.getLastInterruptPin();
-  Serial.println(contr.getLastInterruptPin());
-  contr.getLastInterruptPinValue();
-  
-  cleanInterrupts();
-  //we set callback for the arduino INT handler.
-  attachInterrupt(arduinoInterrupt, intCallBack, FALLING);
+
+	detachInterrupt(arduinoInterrupt);
+	if (millis()>lastMillisInterrupt+15) {
+		//A    |¯¯|__|¯¯|__|¯
+		//B  - __|¯¯|__|¯¯|__  +
+		// Nel canale A pin D3 condensatore ceramico 103K 10nF
+		uint8_t ActEnc=0;
+		// ActEnc= digitalRead(Encoder_A);
+		// ActEnc= (ActEnc<<1)+digitalRead(Encoder_B);
+
+		//	contr.getLastInterruptPin();
+		//	Serial.println(contr.getLastInterruptPin());
+		//	contr.getLastInterruptPinValue();
+		// -1 in getLastInterruptPin for pin0 encoder click
+		//        bitWrite(ActEnc, contr.getLastInterruptPin()-1, contr.getLastInterruptPinValue());
+		uint8_t intPin=contr.getLastInterruptPin();
+		uint8_t valPin=contr.getLastInterruptPinValue();
+		
+		bitWrite(ActEnc, 0,contr.digitalRead(1));
+		bitWrite(ActEnc, 1,contr.digitalRead(2));
+		Serial.print("OldEnc: ");
+		Serial.print(OldEnc,BIN);
+		Serial.print("  - - ActEnc: ");
+		Serial.println(ActEnc,BIN);
+		switch(ActEnc) {
+			case 0: //00
+				if(OldEnc==2) Pot++;  //01
+				if(OldEnc==1) Pot--;  //01
+				//Serial.println("+?");
+				break;
+			case 1: //01
+				if(OldEnc==0) Pot++;  //01
+				if(OldEnc==3) Pot--;  //01
+				break;
+			case 2: //10
+				if(OldEnc==3) Pot++;  //01
+				if(OldEnc==0) Pot--; //00
+				break;
+			case 3: // 11
+				//if(OldEnc==0) Pot--;  //00
+				if(OldEnc==1) Pot++;  //00
+				if(OldEnc==2) Pot--; //00
+				//Serial.println("--");
+				break;
+		}
+
+		OldEnc=ActEnc;
+		Serial.print("Pot: ");
+		Serial.println(Pot);
+	}
+
+
+
+	lastMillisInterrupt=millis();
+	cleanInterrupts();
+	//we set callback for the arduino INT handler.
+	attachInterrupt(arduinoInterrupt, intCallBack, FALLING);
 }
 
 
@@ -77,35 +128,17 @@ void cleanInterrupts() {
 void setup() {
 	Serial.begin(115200);
 	Serial.println("Startup");
-	// set the LCD type
 	contr.setMCPType(LTI_TYPE_MCP23017); 
 	// set up the LCD's number of rows and columns:
 	contr.begin(16, 2);
 	// Print a message to the LCD.
 	contr.print("hello, world!");
-	/*
-
-	   contr.setRegister(MCP23017_DEFVALA,0x07); //set the default values as 1
-	//Serial.println(contr.readRegister(MCP23017_DEFVALA),BIN);
-	//set to compare with register values set to 1 with DEFVALB 
-	contr.setRegister(MCP23017_INTCONA,0x07);
-	contr.setRegister(MCP23017_IOCONA,0x02); //enable active high for interrupt pin
-
-	contr.setRegister(MCP23017_GPINTENA,0x07); //enable interrupts on 3 pins
-	//read the interrupt capture register to reset it
-	uint8_t reg = contr.readRegister(MCP23017_INTCAPA);
-	Serial.print("INTCAPA: ");
-	Serial.println(reg,BIN);
-	//Arduino interrupt pin setup
-	pinMode(arduinoIntPin, INPUT); //set arduinoIntPin as input
-	//attach an interrupt using the pinChangeInt library to interruptPin
-	//PCintPort::attachInterrupt(interruptPin, &quickInt, RISING); 
-	 */
-        for (int count = 0; count < 16; count++) {
-            contr.pinMode(count, OUTPUT);
-        }
+	for (int count = 0; count < 16; count++) {
+		contr.pinMode(count, OUTPUT);
+	}
 	contr.setupEncoder(1,2,0);
-	contr.setupInterruptPin(0, CHANGE);
+	//contr.setupInterruptPin(0, CHANGE);
+	contr.setupInterruptPin(0, FALLING);
 	attachInterrupt(arduinoInterrupt, intCallBack, FALLING);
 
 }
