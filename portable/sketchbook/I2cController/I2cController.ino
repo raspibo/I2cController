@@ -1,15 +1,23 @@
 /*
-   From https://github.com/lincomatic/LiquidTWI2
+   From https://github.com/lincomatic/I2cControllerLib
    and http://blog.think3dprint3d.com/2012/12/mcp23017-i2c.html
  */
 
 // include the library code:
 #include <Wire.h>
-#include <LiquidTWI2.h>
+#include <I2cControllerLib.h>
 
+#define EN_A 0 // Encored scroll A0
+#define EN_B 1 // Encoder scroll A1 
+#define EN_C 2 // Encoder click  A2
+#define BTN_1 3 // Single button A3
+#define BTN_2 4 // Single button A4
+#define BTN_3 5 // Single button A5
+#define BTN_4 6 // Single button A6
+#define BTN_5 7 // Single button A7
 
 // Connect via i2c, default address #0 (A0-A2 not jumpered)
-LiquidTWI2 contr(0);
+I2cControllerLib contr(0);
 int encoderPos=0;
 uint8_t clickButton;
 
@@ -26,85 +34,53 @@ volatile boolean awakenByInterrupt = false;
 unsigned long lastMillisInterrupt = 0;
 
 void handleInterrupt() {
-	/*
-	   Serial.print("INTCAPA: ");
-	   Serial.println(contr.readRegister(MCP23017_INTCAPA),BIN);
-	   Serial.println("Int");
-	//reset the flag
-
-	//rotating=false;   
-
-	//get the interrupt status of the pins
-	//this will clear the flag allowing further interrupts
-	uint8_t intCap=contr.readRegister(MCP23017_INTCAPA);
-	uint8_t test = intCap & 0b00000111;
-	//only deal with the situation where the encoder is turned without the
-	//click button held down
-	if (test == 0b101) encoderPos += 1;
-	if (test == 0b110) encoderPos -= 1;
-	//mask out the encoder bits and look at the click button
-	test &= 0b100;
-	if (test == 0b000) clickButton = LOW;
-
-	// while interrupts are still occurring clear the register (switch bouncing) 
-	while(digitalRead(arduinoIntPin) > 0)
-	{
-	contr.readRegister(MCP23017_INTCAPA);
-	delay (10);
-	}
-	cleanInterrupts();
-	 */
-	// disable interrupts while handling them.
-
 
 	detachInterrupt(arduinoInterrupt);
-	if (millis()>lastMillisInterrupt+15) {
+	if (millis()>lastMillisInterrupt+25) {
 		//A    |¯¯|__|¯¯|__|¯
 		//B  - __|¯¯|__|¯¯|__  +
 		// Nel canale A pin D3 condensatore ceramico 103K 10nF
 		uint8_t ActEnc=0;
-		// ActEnc= digitalRead(Encoder_A);
-		// ActEnc= (ActEnc<<1)+digitalRead(Encoder_B);
-
-		//	contr.getLastInterruptPin();
-		//	Serial.println(contr.getLastInterruptPin());
-		//	contr.getLastInterruptPinValue();
-		// -1 in getLastInterruptPin for pin0 encoder click
-		//        bitWrite(ActEnc, contr.getLastInterruptPin()-1, contr.getLastInterruptPinValue());
 		uint8_t intPin=contr.getLastInterruptPin();
 		uint8_t valPin=contr.getLastInterruptPinValue();
-		
-		bitWrite(ActEnc, 0,contr.digitalRead(1));
-		bitWrite(ActEnc, 1,contr.digitalRead(2));
-		Serial.print("OldEnc: ");
-		Serial.print(OldEnc,BIN);
-		Serial.print("  - - ActEnc: ");
-		Serial.println(ActEnc,BIN);
-		switch(ActEnc) {
-			case 0: //00
-				if(OldEnc==2) Pot++;  //01
-				if(OldEnc==1) Pot--;  //01
-				//Serial.println("+?");
+		//Serial.print("intPin: ");
+		//Serial.println(intPin);
+		//Switch che  decide come gestire interrupt in base al pin che lo ha generato se A0 o A1 interpreta encoder altrimenti interpretazione come pulsante
+		switch(intPin) {
+			case EN_A:
+			case EN_B:
+				bitWrite(ActEnc, 0,contr.digitalRead(EN_A));
+				bitWrite(ActEnc, 1,contr.digitalRead(EN_B));
+				switch(ActEnc) {
+					case 0: //00
+						if(OldEnc==2) Pot++;  //10
+						if(OldEnc==1) Pot--;  //01
+						break;
+					case 1: //01
+						if(OldEnc==0) Pot++;  //00
+						if(OldEnc==3) Pot--;  //11
+						break;
+					case 2: //10
+						if(OldEnc==3) Pot++;  //11
+						if(OldEnc==0) Pot--;  //00
+						break;
+					case 3: // 11
+						if(OldEnc==1) Pot++;  //01
+						if(OldEnc==2) Pot--;  //10
+						break;
+				}
+				OldEnc=ActEnc;
+				Serial.print("Pot: ");
+				Serial.println(Pot);
 				break;
-			case 1: //01
-				if(OldEnc==0) Pot++;  //01
-				if(OldEnc==3) Pot--;  //01
+			case EN_C:
+				Serial.println("click");
 				break;
-			case 2: //10
-				if(OldEnc==3) Pot++;  //01
-				if(OldEnc==0) Pot--; //00
-				break;
-			case 3: // 11
-				//if(OldEnc==0) Pot--;  //00
-				if(OldEnc==1) Pot++;  //00
-				if(OldEnc==2) Pot--; //00
-				//Serial.println("--");
+			default:
+				Serial.print("Button: A");
+				Serial.println(intPin);
 				break;
 		}
-
-		OldEnc=ActEnc;
-		Serial.print("Pot: ");
-		Serial.println(Pot);
 	}
 
 
@@ -136,9 +112,14 @@ void setup() {
 	for (int count = 0; count < 16; count++) {
 		contr.pinMode(count, OUTPUT);
 	}
-	contr.setupEncoder(1,2,0);
-	//contr.setupInterruptPin(0, CHANGE);
-	contr.setupInterruptPin(0, FALLING);
+	contr.setupEncoder(EN_A,EN_B,EN_C); // Encoder setup 
+	contr.setIntBtn(BTN_1);                 // Single button setup
+	//contr.setupInterruptPin(BTN_1, FALLING); //Use this if you want receive continuos interrupt on button pressed. Useful ??
+	contr.setIntBtn(BTN_2);                 // Single button setup
+	contr.setIntBtn(BTN_3);                 // Single button setup
+	contr.setIntBtn(BTN_4);                 // Single button setup
+	contr.setIntBtn(BTN_5);                 // Single button setup
+
 	attachInterrupt(arduinoInterrupt, intCallBack, FALLING);
 
 }
