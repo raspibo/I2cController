@@ -10,6 +10,7 @@
 #define EN_A 0 // Encored scroll A0
 #define EN_B 1 // Encoder scroll A1 
 #define EN_C 2 // Encoder click  A2
+#define BTN_NUM 5
 #define BTN_1 3 // Single button A3
 #define BTN_2 4 // Single button A4
 #define BTN_3 5 // Single button A5
@@ -113,13 +114,14 @@ void setup() {
 		contr.pinMode(count, OUTPUT);
 	}
 	contr.setupEncoder(EN_A,EN_B,EN_C); // Encoder setup 
-	contr.setIntBtn(BTN_1);                 // Single button setup
+//	contr.setIntBtn(BTN_1);                 // Single button setup
 	//contr.setupInterruptPin(BTN_1, FALLING); //Use this if you want receive continuos interrupt on button pressed. Useful ??
-	contr.setIntBtn(BTN_2);                 // Single button setup
-	contr.setIntBtn(BTN_3);                 // Single button setup
-	contr.setIntBtn(BTN_4);                 // Single button setup
-	contr.setIntBtn(BTN_5);                 // Single button setup
-
+//	contr.setIntBtn(BTN_2);                 // Single button setup
+//	contr.setIntBtn(BTN_3);                 // Single button setup
+//	contr.setIntBtn(BTN_4);                 // Single button setup
+//	contr.setIntBtn(BTN_5);                 // Single button setup
+        uint8_t btnCross[BTN_NUM] = { BTN_1, BTN_2, BTN_3, BTN_4, BTN_5};
+        contr.setIntCross(btnCross, BTN_NUM);
 	attachInterrupt(arduinoInterrupt, intCallBack, FALLING);
 
 }
