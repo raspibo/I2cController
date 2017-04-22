@@ -9,3 +9,7 @@ The code handle interrupt of pin change generated from MC23017 chip when event f
 # Use
 Put portable dir under your arduino folder to use project specific libraries
 
+# Typical Schematic
+
+
+<img src=https://rawgit.com/raspibo/I2cController/master/kicad/plot/I2cController.svg>
