@@ -1,7 +1,8 @@
 #include "I2cController.h"
 
 /*
-   I2cControllerLib High Performance i2c LCD driver for MCP23008 & MCP23017
+   Libreary result of remix of:   
+   -  I2cControllerLib High Performance i2c LCD driver for MCP23008 & MCP23017
    hacked by Sam C. Lin / http://www.lincomatic.com
    from 
    LiquidTWI by Matt Falcon (FalconFour) / http://falconfour.com
@@ -11,7 +12,11 @@
 
    Compatible with Adafruit I2C LCD backpack (MCP23008) and
    Adafruit RGB LCD Shield
-   */
+   - Adafruit MCP23017 https://github.com/adafruit/Adafruit-MCP23017-Arduino-Library
+   - Function add for a specific controller Raspibo
+
+Work in progress for a better solution in open source code
+*/
 
 #include <stdio.h>
 #include <string.h>
