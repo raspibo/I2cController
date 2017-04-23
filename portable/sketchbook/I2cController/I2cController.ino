@@ -5,7 +5,7 @@
 
 // include the library code:
 #include <Wire.h>
-#include <I2cControllerLib.h>
+#include <I2cController.h>
 
 #define EN_A 0 // Encored scroll A0
 #define EN_B 1 // Encoder scroll A1 
